@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Day002：OpenHarmony 不只有内核 · OpenHarmony 内核学习</title>
+  <style>
+:root {
+  color-scheme: light;
+  --page-bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-muted: #eef2f8;
+  --text: #1d2633;
+  --text-muted: #596579;
+  --border: #d8dfeb;
+  --link: #1455a3;
+  --link-hover: #0c3970;
+  --accent: #3a63a6;
+  --code-bg: #eef1f6;
+  --focus: #e18a00;
+  --shadow: 0 0.5rem 2rem rgb(25 42 70 / 8%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page-bg: #111821;
+    --surface: #19232f;
+    --surface-muted: #222f3e;
+    --text: #e7edf5;
+    --text-muted: #bac5d3;
+    --border: #364454;
+    --link: #9ac5ff;
+    --link-hover: #c5ddff;
+    --accent: #9bbcf0;
+    --code-bg: #101720;
+    --focus: #ffd166;
+    --shadow: 0 0.5rem 2rem rgb(0 0 0 / 25%);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #111821;
+  --surface: #19232f;
+  --surface-muted: #222f3e;
+  --text: #e7edf5;
+  --text-muted: #bac5d3;
+  --border: #364454;
+  --link: #9ac5ff;
+  --link-hover: #c5ddff;
+  --accent: #9bbcf0;
+  --code-bg: #101720;
+  --focus: #ffd166;
+  --shadow: 0 0.5rem 2rem rgb(0 0 0 / 25%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.8;
+}
+
+a {
+  color: var(--link);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  z-index: 10;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  transform: translateY(-160%);
+  border-radius: 0.35rem;
+  background: var(--surface);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Header */
+.site-header {
+  position: sticky;
+  z-index: 5;
+  top: 0;
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem max(1rem, calc((100vw - 82rem) / 2));
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.brand {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.share-badge {
+  margin-right: auto;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.theme-toggle {
+  display: none;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.js-enabled .theme-toggle {
+  display: inline-flex;
+}
+
+.main-shell {
+  width: min(100% - 2rem, 82rem);
+  margin: 0 auto;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Home */
+.home {
+  max-width: 54rem;
+  padding: clamp(2rem, 6vw, 5rem) 0 4rem;
+}
+
+.hero {
+  margin-bottom: 2.5rem;
+  padding: clamp(1.4rem, 4vw, 2.6rem);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1.25;
+}
+
+.hero-summary {
+  max-width: 42rem;
+  margin: 1rem 0 0;
+  color: var(--text-muted);
+}
+
+.course-section h2 {
+  font-size: 1.45rem;
+}
+
+.lesson-list {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson-card a {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.lesson-card-links {
+  display: flex;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.lesson-card-links .course-entry {
+  flex: 1;
+}
+
+.share-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--surface);
+  font-size: 0.8rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.lesson-card a:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+}
+
+.lesson-number {
+  flex: 0 0 4.5rem;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.lesson-title {
+  font-weight: 650;
+}
+
+.empty-state {
+  padding: 1.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.75rem;
+  color: var(--text-muted);
+}
+
+.share-resource-warning {
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid #b95a00;
+  border-radius: 0.55rem;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* Lesson layout and table of contents */
+.lesson-layout {
+  display: grid;
+  grid-template-columns: minmax(13rem, 17rem) minmax(0, 48rem);
+  justify-content: center;
+  align-items: start;
+  gap: clamp(1.25rem, 3vw, 3rem);
+  padding: 2rem 0 4rem;
+}
+
+.toc-panel {
+  position: sticky;
+  top: 4.5rem;
+  max-height: calc(100vh - 5.5rem);
+  overflow: auto;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.toc-panel summary {
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toc-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc-level-3 {
+  padding-left: 0.8rem;
+}
+
+.toc-level-4 {
+  padding-left: 1.6rem;
+}
+
+.toc-list a {
+  display: block;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.toc-list a:hover {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.lesson-article {
+  min-width: 0;
+  padding: clamp(1.25rem, 4vw, 3rem);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.lesson-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.lesson-header .share-download {
+  float: right;
+  margin-top: -0.1rem;
+}
+
+.lesson-header h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 4vw, 2.7rem);
+  line-height: 1.3;
+}
+
+.article-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.article-content h2 {
+  margin-top: 2.4em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.65rem;
+  line-height: 1.4;
+}
+
+.article-content h3 {
+  margin-top: 2em;
+  font-size: 1.3rem;
+  line-height: 1.45;
+}
+
+.article-content p,
+.article-content ul,
+.article-content ol,
+.article-content blockquote {
+  margin: 1em 0;
+}
+
+.article-content strong {
+  color: inherit;
+  font-weight: 760;
+  text-decoration-thickness: 0.11em;
+}
+
+.article-content u {
+  text-decoration-thickness: 0.09em;
+  text-underline-offset: 0.16em;
+}
+
+.article-content span[style*="b00020"] {
+  color: #b00020;
+  font-weight: 700;
+}
+
+:root[data-theme="dark"] .article-content span[style*="b00020"] {
+  color: #ff9e9e;
+}
+
+.article-content blockquote {
+  margin-left: 0;
+  padding: 0.1rem 1rem;
+  border-left: 0.25rem solid var(--accent);
+  color: var(--text-muted);
+  background: var(--surface-muted);
+}
+
+.article-content code {
+  padding: 0.12em 0.32em;
+  border-radius: 0.3rem;
+  background: var(--code-bg);
+  font-family: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.article-content pre {
+  max-width: 100%;
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--code-bg);
+  line-height: 1.55;
+}
+
+.article-content pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.article-content table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.article-content th,
+.article-content td {
+  min-width: 7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.article-content th {
+  background: var(--surface-muted);
+}
+
+.article-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.lesson-pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.pager-link {
+  display: grid;
+  gap: 0.2rem;
+  max-width: 48%;
+  text-decoration: none;
+}
+
+.pager-link span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.pager-link strong {
+  color: var(--link);
+}
+
+.pager-link.next {
+  margin-left: auto;
+  text-align: right;
+}
+
+.site-footer {
+  display: flex;
+  width: min(100% - 2rem, 82rem);
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 auto;
+  padding: 1.25rem 0 2rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+@media (max-width: 54rem) {
+  .lesson-layout {
+    grid-template-columns: minmax(0, 48rem);
+    gap: 1rem;
+  }
+
+  .toc-panel {
+    position: static;
+    max-height: none;
+  }
+
+  .lesson-article {
+    padding: clamp(1.1rem, 4vw, 2rem);
+  }
+}
+
+@media (max-width: 36rem) {
+  body {
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  .main-shell,
+  .site-footer {
+    width: min(100% - 1rem, 48rem);
+  }
+
+  .lesson-layout {
+    padding-top: 0.75rem;
+  }
+
+  .lesson-article {
+    padding: 1rem;
+    border-radius: 0.7rem;
+  }
+
+  .lesson-card a {
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.85rem;
+  }
+
+  .lesson-card-links {
+    flex-direction: column;
+  }
+
+  .lesson-number {
+    flex-basis: 3.8rem;
+  }
+
+  .site-footer {
+    flex-direction: column;
+  }
+}
+
+@media print {
+  .site-header,
+  .toc-panel,
+  .lesson-pager,
+  .site-footer,
+  .back-link {
+    display: none !important;
+  }
+
+  body,
+  .lesson-article {
+    background: #fff;
+    color: #000;
+    box-shadow: none;
+  }
+
+  .lesson-layout {
+    display: block;
+    width: 100%;
+    padding: 0;
+  }
+}
+
+</style>
+  <script>
+(() => {
+  const root = document.documentElement;
+  const button = document.querySelector(".theme-toggle");
+  const storageKey = "openharmony-reading-theme";
+  const systemPreference = window.matchMedia("(prefers-color-scheme: dark)");
+
+  root.classList.add("js-enabled");
+
+  function storedTheme() {
+    try {
+      const value = window.localStorage.getItem(storageKey);
+      return value === "light" || value === "dark" ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function setTheme(theme, persist) {
+    root.dataset.theme = theme;
+    if (button) {
+      button.setAttribute("aria-pressed", String(theme === "dark"));
+      button.querySelector(".theme-label").textContent =
+        theme === "dark" ? "切换浅色" : "切换深色";
+    }
+    if (persist) {
+      try {
+        window.localStorage.setItem(storageKey, theme);
+      } catch {
+        // Theme switching remains available when browser storage is disabled.
+      }
+    }
+  }
+
+  const savedTheme = storedTheme();
+  if (savedTheme) {
+    setTheme(savedTheme, false);
+  } else {
+    root.dataset.theme = systemPreference.matches ? "dark" : "light";
+    if (button) {
+      button.setAttribute("aria-pressed", String(systemPreference.matches));
+      button.querySelector(".theme-label").textContent =
+        systemPreference.matches ? "切换浅色" : "切换深色";
+    }
+  }
+
+  if (button) {
+    button.addEventListener("click", () => {
+      const currentTheme = root.dataset.theme || (systemPreference.matches ? "dark" : "light");
+      setTheme(currentTheme === "dark" ? "light" : "dark", true);
+    });
+  }
+})();
+
+</script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header share-header">
+    <span class="brand">OpenHarmony 内核学习</span>
+    <span class="share-badge">独立分享版</span>
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深浅主题">
+      <span class="theme-icon" aria-hidden="true">◐</span>
+      <span class="theme-label">切换主题</span>
+    </button>
+  </header>
+  <main id="main-content" class="lesson-layout share-layout main-shell">
+  <details class="toc-panel" open>
+    <summary>本页目录</summary>
+    <nav aria-label="本页目录">
+      <ul class="toc-list"><li class="toc-level-2"><a href="#摘要">摘要</a></li><li class="toc-level-2"><a href="#正文">正文</a></li><li class="toc-level-3"><a href="#为什么需要分层">为什么需要分层</a></li><li class="toc-level-3"><a href="#抽象是接口承诺-不是魔法">抽象是接口承诺，不是魔法</a></li><li class="toc-level-3"><a href="#openharmony-的四层职责">OpenHarmony 的四层职责</a></li><li class="toc-level-3"><a href="#用读取并显示文字定位职责">用读取并显示文字定位职责</a></li><li class="toc-level-3"><a href="#分层如何限制变化传播">分层如何限制变化传播</a></li><li class="toc-level-3"><a href="#把分层图用于新问题">把分层图用于新问题</a></li></ul>
+    </nav>
+  </details>
+  <article class="lesson-article">
+    <header class="lesson-header">
+      <p class="eyebrow">Day002 · 独立分享版</p>
+      <h1>Day002：OpenHarmony 不只有内核</h1>
+    </header>
+
+    <div class="article-content">
+      <h2 id="摘要">摘要</h2>
+
+本课回答“应用显示一段文字时，为什么仍需要框架、系统服务和内核各自承担工作”。OpenHarmony 官方架构资料把系统概括为内核层、系统服务层、框架层和应用层。分层把职责与接口组织起来，使应用不必各自适配每种设备，也让底层实现变化尽量局限在合适范围。正文先解释重复适配会造成的维护和权限问题，再说明“抽象”如何隐藏实现细节但不保证请求一定成功，随后沿用读取文件并显示文字的情境定位各层职责。需要特别区分：系统服务和框架通常不是内核代码，分布式软总线等平台能力不能直接称为内核功能；另一方面，图形驱动可能参与显示设备访问，因此也不能说显示与内核完全无关。读者应能用“谁发起请求、谁提供通用接口、谁协调系统能力、谁管理受保护资源”分析陌生功能，并理解架构图不能代替目标产品的实际调用链。
+<h2 id="正文">正文</h2>
+<h3 id="为什么需要分层">为什么需要分层</h3>
+
+假设每个应用都自己读取文件、访问存储并绘制屏幕。同样的错误检查和设备适配会被重复实现；硬件变化时，应用都可能修改。程序还得自行协调设备访问与权限，难以避免彼此干扰。
+
+操作系统把共用能力集中起来，再用接口向上提供服务。应用可以请求“打开这个文件”，而不需要了解存储控制器如何工作；界面程序可以请求绘制文字，而不直接操作显示设备寄存器。**分层的目的不是让架构图整齐，而是把变化和资源管理放到合适边界。**并非所有细节都能隐藏，但多数应用可以依赖较稳定的接口。
+<h3 id="抽象是接口承诺-不是魔法">抽象是接口承诺，不是魔法</h3>
+
+软件中的<strong>抽象</strong>，是把底层实现转换为较稳定、易使用的能力描述。文件接口让调用者关注路径、权限、数据和错误，而不必知道数据在介质上的物理位置。好的抽象隐藏不必要细节，但保留必要约定：若只承诺“最多读取 N 个字节”，调用者仍须检查实际读到多少；若无权访问会返回错误，也必须处理失败。
+
+抽象不等于请求一定成功，也不允许忽略接口约定。接口稳定时，更换某层实现通常不必改动所有上层程序；接口变化或上层依赖了未承诺的细节时，影响仍会传播。<u>架构图描述职责边界，不足以还原真实调用路径。</u>
+<h3 id="openharmony-的四层职责">OpenHarmony 的四层职责</h3>
+
+OpenHarmony 官方项目概览以应用层、框架层、系统服务层和内核层概括技术架构。这是帮助定位问题的地图，不是说每次用户操作都严格穿过四个方框。实际请求可能直接调用库或内核接口，也可能跨进程、经系统服务处理，或由缓存满足。
+
+<strong>应用层</strong>实现具体用户功能。文本应用决定显示哪些文字、响应什么操作；它不应自己重写文件系统或显卡驱动。<strong>框架层</strong>向应用开发者提供常用程序模型和 API（应用程序接口），减少样板工作；一个框架调用可能只在用户空间运行，也可能间接请求服务或内核。
+
+<strong>系统服务层</strong>提供账户、图形、多媒体等系统级能力，常需协调多个应用和资源。服务可以运行在内核之外，同时调用内核机制；“属于操作系统”不等于“属于内核”。<strong>内核层</strong>管理进程、内存、文件和设备等基础资源；驱动可与内核协作访问硬件。内核一般不决定文本颜色、界面布局或应用业务规则。
+<h3 id="用读取并显示文字定位职责">用读取并显示文字定位职责</h3>
+
+应用读取文本时，可能通过框架或库使用方便的接口；文件访问机制检查请求并取得数据。产品中还可能经过系统服务或缓存，所以这只是职责示意。数据取得后，应用或框架决定字体和布局；图形服务管理窗口，内核驱动可能参与显示设备访问。
+
+因此，“屏幕显示全由内核做”忽略上层逻辑，“内核与显示无关”又忽略驱动。判断组件归属要看代码位置、运行上下文、接口职责和官方架构定义，而非只看它是否重要或底层。
+<h3 id="分层如何限制变化传播">分层如何限制变化传播</h3>
+
+存储设备变化时，驱动或文件系统可吸收差异，让应用继续使用同一文件接口；窗口合成方式改变时，应用仍可依赖稳定的框架 API。若设备变化迫使所有应用改写，或业务变化迫使修改内核，就应检查边界是否合适。
+
+分层不能保证变化永远局部化。新硬件可能需要新服务接口，接口变化会影响框架和应用；内核接口变动也可能影响使用它的库和服务。因此工程仍需维护版本约定、兼容性和回归测试。<strong>抽象的价值不是让变化不存在，而是让变化能够定位、约束并逐步迁移。</strong>
+
+OpenHarmony 的分布式软总线等能力也属于平台整体，但不能因为它们重要或使用了底层网络能力，就把它们称为内核功能。内核可以提供进程通信、网络、文件和设备等基础机制；上层系统服务在这些机制上组织跨设备能力。<u>“属于操作系统”不能直接推出“属于内核”。</u>
+<h3 id="把分层图用于新问题">把分层图用于新问题</h3>
+
+面对陌生功能，可以依次问：谁提出请求？谁提供更方便的通用接口？是否有系统服务需要协调多个应用或资源？是否涉及内核管理的受保护资源？例如应用提示读取失败，原因可能在应用路径、框架返回值处理、服务权限策略、内核文件系统或存储设备。仅凭用户看到的错误，不能直接断定是内核缺陷。
+
+这套分析可迁移到网络、音频或键盘输入：应用表达意图，框架提供开发接口，服务协调系统范围能力，内核和驱动管理资源与设备交互。真实边界因系统和产品而异；若要确认某个 OpenHarmony 版本的调用链，应查对应服务、库和内核源码，必要时结合日志或运行跟踪。架构图帮助提出假设，不能替代证据。
+
+本课承接 Day001 对“项目与内核”的区分，下一课继续讨论不同设备为何会选择不同内核路线。
+
+本课依据：<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/OpenHarmony-Overview_zh.md">OpenHarmony 项目概览</a>。文本读取和显示为教学示意；官方资料与版本记录见官方资料索引。
+
+    </div>
+  </article>
+</main>
+
+  <footer class="site-footer share-footer">
+    <p>独立 HTML 分享版。课程内容来源于 Markdown 自动生成。</p>
+  </footer>
+</body>
+</html>

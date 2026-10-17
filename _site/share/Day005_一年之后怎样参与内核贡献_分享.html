@@ -593,6 +593,72 @@ summary:focus-visible {
 }
 
 </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header share-header">
+    <span class="brand">OpenHarmony 内核学习</span>
+    <span class="share-badge">独立分享版</span>
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深浅主题">
+      <span class="theme-icon" aria-hidden="true">◐</span>
+      <span class="theme-label">切换主题</span>
+    </button>
+  </header>
+  <main id="main-content" class="lesson-layout share-layout main-shell">
+  <details class="toc-panel" open>
+    <summary>本页目录</summary>
+    <nav aria-label="本页目录">
+      <ul class="toc-list"><li class="toc-level-2"><a href="#摘要">摘要</a></li><li class="toc-level-2"><a href="#正文">正文</a></li><li class="toc-level-3"><a href="#看懂概念与证明问题之间的距离">看懂概念与证明问题之间的距离</a></li><li class="toc-level-3"><a href="#先确认分析的是哪套源码">先确认分析的是哪套源码</a></li><li class="toc-level-3"><a href="#先判断应改文档-测试还是实现">先判断应改文档、测试还是实现</a></li><li class="toc-level-3"><a href="#虚构案例-把-最多-写成-必定">虚构案例：把“最多”写成“必定”</a></li><li class="toc-level-3"><a href="#从复现走向评审">从复现走向评审</a></li></ul>
+    </nav>
+  </details>
+  <article class="lesson-article">
+    <header class="lesson-header">
+      <p class="eyebrow">Day005 · 独立分享版</p>
+      <h1>Day005：一年之后，怎样参与内核贡献？</h1>
+    </header>
+
+    <div class="article-content">
+      <h2 id="摘要">摘要</h2>
+<p>本课回答“从理解内核概念到提交有依据的改进，中间还缺什么”。贡献不是看到可疑代码就立刻修改，而是先固定问题对象和版本，取得可复查证据，判断问题属于文档、Linux 通用机制、OpenHarmony 公共内核还是产品配置，再选择适当修改并按范围验证。正文先区分 Linux 上游、OpenHarmony 公共基线和产品补丁，说明通用 Linux 测试不能自动代表产品验证；随后用一个明确标为虚构的文档案例演示如何区分说明错误与实现缺陷，并解释最小复现、回归验证和社区评审各自的作用。案例不伪造真实缺陷、日志或 PR。读者应能用“观察到什么、依据什么判断、改了什么、验证到哪里”描述一项贡献，也应理解文档、测试和小缺陷修复都可以成为有价值的初次贡献，补丁未合并不自动等于学习失败。</p>
+<h2 id="正文">正文</h2>
+<h3 id="看懂概念与证明问题之间的距离">看懂概念与证明问题之间的距离</h3>
+<p>前四课说明了项目分层、内核路线和文件请求机制，但这些知识还不能直接证明某段代码有缺陷。实现看起来奇怪，可能是在兼容旧接口，也可能只在某项配置下运行。没有清楚的预期行为，就无法判断现象是否错误；只在一个环境里碰巧成功，也不能说明修复适用于其他环境。</p>
+<p>贡献首先是<strong>组织证据</strong>：写清仓库和版本、怎样触发问题、预期是什么、实际观察到什么、依据哪份文档或测试判断存在差异。评审者据此才能复查，而不是只能接受“我觉得”。<u>先界定问题和依据，再决定修改方式。</u></p>
+<h3 id="先确认分析的是哪套源码">先确认分析的是哪套源码</h3>
+<p>Linux 上游是由 Linux 内核社区维护的公共源码；OpenHarmony 可基于上游长期维护分支形成公共内核基线，并叠加 OpenHarmony 修改；具体产品还可能加入芯片平台补丁、驱动和配置。可将关系简化为：</p>
+<pre><code>Linux 上游 → OpenHarmony 公共内核基线 → 平台补丁与产品配置
+</code></pre>
+<p>不同分支的仓库组织、版本和补丁可能变化。上游某函数的实现，不能自动证明某产品使用的代码完全相同；通用 Linux 虚拟机测试通过，也不能证明 OpenHarmony 产品配置已验证。分析前至少记录仓库或来源、分支/标签、必要时的提交号、产品和相关配置。<strong>验证结论要带验证范围一起读</strong>：在哪个版本、什么硬件和配置、运行了什么测试、还有哪些未覆盖。</p>
+<p>通用 Linux 实验能验证接口概念并缩小问题范围；若目标是 OpenHarmony 产品集成，仍须检查目标分支、补丁、配置和产品测试。测试通过不是脱离环境的结论。</p>
+<h3 id="先判断应改文档-测试还是实现">先判断应改文档、测试还是实现</h3>
+<p>修改对象取决于“公开承诺是什么”和“实际行为是什么”。如果文档写错而实现符合接口约定，应先修文档；如果接口约定清楚而代码违反它，才调查实现和测试；若问题只出现在产品配置，根因可能在集成层。也可能是调用者误用接口，或测试预期本身有误。</p>
+<p>可以按以下顺序缩小范围：</p>
+<ol>
+<li>固定对象：Linux 接口、OpenHarmony 公共内核，还是具体产品。</li>
+<li>找到承诺：核对目标版本的文档、代码和测试。</li>
+<li>记录输入、步骤、环境、预期和实际；文档问题保留原文位置。</li>
+<li>判断差异属于说明、实现、配置、调用方法还是测试预期。</li>
+<li>选择最小修正并解释理由；按范围验证，未运行的测试标为未验证。</li>
+</ol>
+<h3 id="虚构案例-把-最多-写成-必定">虚构案例：把“最多”写成“必定”</h3>
+<p>以下是<strong>虚构教学案例</strong>，不对应真实 OpenHarmony 缺陷、运行日志或 PR。假设入门材料写：“请求读取 100 字节后，系统一定返回 100 字节。”Linux <code>read(2)</code> 的接口说明是尝试读取最多指定数量，成功返回实际字节数；请求量不保证等于本次读到的量。</p>
+<p>首先要确定这句话描述的是哪个接口。如果它讲 Linux 通用 <code>read()</code>，可以对照 man-pages；若声称某个 OpenHarmony 高层 API 保证填满缓冲区，就必须查那个 API 的文档和实现，不能直接套用 Linux 接口规则。当前假设只有文字证据，没有运行程序，也没有证明某产品行为异常，因此合理的最小修改是把“必定读取 100 字节”改为“最多请求读取 100 字节，实际读取量由返回值给出”。这修正文档，不宣称改变内核行为。</p>
+<p>文档验证应核对接口资料、修订句是否准确，并确认附近内容没有继续作绝对保证。由于这是虚构案例，没有实际运行、日志或社区评审，不能写成“缺陷已复现”或“补丁已验证”。如果后续发现具体产品 API 的承诺不同，再据该 API 单独分析。</p>
+<p>贡献不必总是内核 C 代码：文档修订可以避免误解，测试可把行为变成可检查断言，小缺陷修复则需实现证据。共同要求是对象清楚、依据可追溯、范围合理、验证诚实。</p>
+<h3 id="从复现走向评审">从复现走向评审</h3>
+<p>真实运行问题通常从观察开始。日志中的错误只是线索，不是根因。尝试构造<strong>最小复现</strong>，即删去无关服务、数据和操作，留下能稳定触发现象的必要条件；这能减少噪声，让其他人重现同一问题。之后沿层次检查应用参数、框架转换、系统服务策略、内核返回值和产品补丁，不能因为课程主题是内核就把所有问题归为内核缺陷。</p>
+<p>修改尽量小而直接，便于评审者看清它解决什么，也便于设计测试。修改后先验证目标问题，再运行相关回归测试。<strong>回归验证</strong>检查修复是否破坏既有行为，但它不等于覆盖所有场景。提交后评审者可能要求补依据、测试或调整方案；回应应说明采纳了什么以及证据如何变化。OpenHarmony 与 Linux 上游有各自流程，贡献前须核对目标仓库当前要求。</p>
+<p>初次贡献可以是文档、测试、复现分析或小缺陷。价值在于解决真实问题、说明依据并记录验证范围，而非代码行数。补丁未合并不自动说明学习失败；补丁合并也不代表掌握全部相关机制。</p>
+<p>回看 Day001～Day004，本课把理解推进到证据：我观察到什么？依据什么判断它不符合预期？我改了什么、为什么范围足够？我实际验证到哪里？这些回答由记录支撑，问题就更容易被复查和评审。学习路线提供方向，贡献能力仍需实践和反馈。</p>
+<p>本课依据：<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/contribute/%E8%B4%A1%E7%8C%AE%E6%B5%81%E7%A8%8B.md">OpenHarmony 社区贡献流程</a>、<a href="https://docs.kernel.org/process/1.Intro.html">Linux 内核开发流程</a>、<a href="https://docs.kernel.org/process/submitting-patches.html">Linux 提交补丁指南</a>、<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/readme/%E5%86%85%E6%A0%B8%E5%AD%90%E7%B3%BB%E7%BB%9F.md">OpenHarmony 内核子系统说明</a>及 Linux <a href="https://man7.org/linux/man-pages/man2/read.2.html"><code>read(2)</code></a>。流程和代码基线会变化；实际贡献前核对目标仓库。访问记录见官方资料索引。</p>
+
+    </div>
+  </article>
+</main>
+
+  <footer class="site-footer share-footer">
+    <p>独立 HTML 分享版。课程内容来源于 Markdown 自动生成。</p>
+  </footer>
   <script>
 (() => {
   const root = document.documentElement;
@@ -648,88 +714,5 @@ summary:focus-visible {
 })();
 
 </script>
-</head>
-<body>
-  <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header share-header">
-    <span class="brand">OpenHarmony 内核学习</span>
-    <span class="share-badge">独立分享版</span>
-    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深浅主题">
-      <span class="theme-icon" aria-hidden="true">◐</span>
-      <span class="theme-label">切换主题</span>
-    </button>
-  </header>
-  <main id="main-content" class="lesson-layout share-layout main-shell">
-  <details class="toc-panel" open>
-    <summary>本页目录</summary>
-    <nav aria-label="本页目录">
-      <ul class="toc-list"><li class="toc-level-2"><a href="#摘要">摘要</a></li><li class="toc-level-2"><a href="#正文">正文</a></li><li class="toc-level-3"><a href="#看懂概念与证明问题之间的距离">看懂概念与证明问题之间的距离</a></li><li class="toc-level-3"><a href="#先确认分析的是哪套源码">先确认分析的是哪套源码</a></li><li class="toc-level-3"><a href="#先判断应改文档-测试还是实现">先判断应改文档、测试还是实现</a></li><li class="toc-level-3"><a href="#虚构案例-把-最多-写成-必定">虚构案例：把“最多”写成“必定”</a></li><li class="toc-level-3"><a href="#从复现走向评审">从复现走向评审</a></li></ul>
-    </nav>
-  </details>
-  <article class="lesson-article">
-    <header class="lesson-header">
-      <p class="eyebrow">Day005 · 独立分享版</p>
-      <h1>Day005：一年之后，怎样参与内核贡献？</h1>
-    </header>
-
-    <div class="article-content">
-      <h2 id="摘要">摘要</h2>
-
-本课回答“从理解内核概念到提交有依据的改进，中间还缺什么”。贡献不是看到可疑代码就立刻修改，而是先固定问题对象和版本，取得可复查证据，判断问题属于文档、Linux 通用机制、OpenHarmony 公共内核还是产品配置，再选择适当修改并按范围验证。正文先区分 Linux 上游、OpenHarmony 公共基线和产品补丁，说明通用 Linux 测试不能自动代表产品验证；随后用一个明确标为虚构的文档案例演示如何区分说明错误与实现缺陷，并解释最小复现、回归验证和社区评审各自的作用。案例不伪造真实缺陷、日志或 PR。读者应能用“观察到什么、依据什么判断、改了什么、验证到哪里”描述一项贡献，也应理解文档、测试和小缺陷修复都可以成为有价值的初次贡献，补丁未合并不自动等于学习失败。
-<h2 id="正文">正文</h2>
-<h3 id="看懂概念与证明问题之间的距离">看懂概念与证明问题之间的距离</h3>
-
-前四课说明了项目分层、内核路线和文件请求机制，但这些知识还不能直接证明某段代码有缺陷。实现看起来奇怪，可能是在兼容旧接口，也可能只在某项配置下运行。没有清楚的预期行为，就无法判断现象是否错误；只在一个环境里碰巧成功，也不能说明修复适用于其他环境。
-
-贡献首先是<strong>组织证据</strong>：写清仓库和版本、怎样触发问题、预期是什么、实际观察到什么、依据哪份文档或测试判断存在差异。评审者据此才能复查，而不是只能接受“我觉得”。<u>先界定问题和依据，再决定修改方式。</u>
-<h3 id="先确认分析的是哪套源码">先确认分析的是哪套源码</h3>
-
-Linux 上游是由 Linux 内核社区维护的公共源码；OpenHarmony 可基于上游长期维护分支形成公共内核基线，并叠加 OpenHarmony 修改；具体产品还可能加入芯片平台补丁、驱动和配置。可将关系简化为：
-<pre><code>Linux 上游 → OpenHarmony 公共内核基线 → 平台补丁与产品配置
-</code></pre>
-
-不同分支的仓库组织、版本和补丁可能变化。上游某函数的实现，不能自动证明某产品使用的代码完全相同；通用 Linux 虚拟机测试通过，也不能证明 OpenHarmony 产品配置已验证。分析前至少记录仓库或来源、分支/标签、必要时的提交号、产品和相关配置。<strong>验证结论要带验证范围一起读</strong>：在哪个版本、什么硬件和配置、运行了什么测试、还有哪些未覆盖。
-
-通用 Linux 实验能验证接口概念并缩小问题范围；若目标是 OpenHarmony 产品集成，仍须检查目标分支、补丁、配置和产品测试。测试通过不是脱离环境的结论。
-<h3 id="先判断应改文档-测试还是实现">先判断应改文档、测试还是实现</h3>
-
-修改对象取决于“公开承诺是什么”和“实际行为是什么”。如果文档写错而实现符合接口约定，应先修文档；如果接口约定清楚而代码违反它，才调查实现和测试；若问题只出现在产品配置，根因可能在集成层。也可能是调用者误用接口，或测试预期本身有误。
-
-可以按以下顺序缩小范围：
-<ol>
-<li>固定对象：Linux 接口、OpenHarmony 公共内核，还是具体产品。</li>
-<li>找到承诺：核对目标版本的文档、代码和测试。</li>
-<li>记录输入、步骤、环境、预期和实际；文档问题保留原文位置。</li>
-<li>判断差异属于说明、实现、配置、调用方法还是测试预期。</li>
-<li>选择最小修正并解释理由；按范围验证，未运行的测试标为未验证。</li>
-</ol>
-<h3 id="虚构案例-把-最多-写成-必定">虚构案例：把“最多”写成“必定”</h3>
-
-以下是<strong>虚构教学案例</strong>，不对应真实 OpenHarmony 缺陷、运行日志或 PR。假设入门材料写：“请求读取 100 字节后，系统一定返回 100 字节。”Linux <code>read(2)</code> 的接口说明是尝试读取最多指定数量，成功返回实际字节数；请求量不保证等于本次读到的量。
-
-首先要确定这句话描述的是哪个接口。如果它讲 Linux 通用 <code>read()</code>，可以对照 man-pages；若声称某个 OpenHarmony 高层 API 保证填满缓冲区，就必须查那个 API 的文档和实现，不能直接套用 Linux 接口规则。当前假设只有文字证据，没有运行程序，也没有证明某产品行为异常，因此合理的最小修改是把“必定读取 100 字节”改为“最多请求读取 100 字节，实际读取量由返回值给出”。这修正文档，不宣称改变内核行为。
-
-文档验证应核对接口资料、修订句是否准确，并确认附近内容没有继续作绝对保证。由于这是虚构案例，没有实际运行、日志或社区评审，不能写成“缺陷已复现”或“补丁已验证”。如果后续发现具体产品 API 的承诺不同，再据该 API 单独分析。
-
-贡献不必总是内核 C 代码：文档修订可以避免误解，测试可把行为变成可检查断言，小缺陷修复则需实现证据。共同要求是对象清楚、依据可追溯、范围合理、验证诚实。
-<h3 id="从复现走向评审">从复现走向评审</h3>
-
-真实运行问题通常从观察开始。日志中的错误只是线索，不是根因。尝试构造<strong>最小复现</strong>，即删去无关服务、数据和操作，留下能稳定触发现象的必要条件；这能减少噪声，让其他人重现同一问题。之后沿层次检查应用参数、框架转换、系统服务策略、内核返回值和产品补丁，不能因为课程主题是内核就把所有问题归为内核缺陷。
-
-修改尽量小而直接，便于评审者看清它解决什么，也便于设计测试。修改后先验证目标问题，再运行相关回归测试。<strong>回归验证</strong>检查修复是否破坏既有行为，但它不等于覆盖所有场景。提交后评审者可能要求补依据、测试或调整方案；回应应说明采纳了什么以及证据如何变化。OpenHarmony 与 Linux 上游有各自流程，贡献前须核对目标仓库当前要求。
-
-初次贡献可以是文档、测试、复现分析或小缺陷。价值在于解决真实问题、说明依据并记录验证范围，而非代码行数。补丁未合并不自动说明学习失败；补丁合并也不代表掌握全部相关机制。
-
-回看 Day001～Day004，本课把理解推进到证据：我观察到什么？依据什么判断它不符合预期？我改了什么、为什么范围足够？我实际验证到哪里？这些回答由记录支撑，问题就更容易被复查和评审。学习路线提供方向，贡献能力仍需实践和反馈。
-
-本课依据：<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/contribute/%E8%B4%A1%E7%8C%AE%E6%B5%81%E7%A8%8B.md">OpenHarmony 社区贡献流程</a>、<a href="https://docs.kernel.org/process/1.Intro.html">Linux 内核开发流程</a>、<a href="https://docs.kernel.org/process/submitting-patches.html">Linux 提交补丁指南</a>、<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/readme/%E5%86%85%E6%A0%B8%E5%AD%90%E7%B3%BB%E7%BB%9F.md">OpenHarmony 内核子系统说明</a>及 Linux <a href="https://man7.org/linux/man-pages/man2/read.2.html"><code>read(2)</code></a>。流程和代码基线会变化；实际贡献前核对目标仓库。访问记录见官方资料索引。
-
-    </div>
-  </article>
-</main>
-
-  <footer class="site-footer share-footer">
-    <p>独立 HTML 分享版。课程内容来源于 Markdown 自动生成。</p>
-  </footer>
 </body>
 </html>

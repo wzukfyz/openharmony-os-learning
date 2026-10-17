@@ -49,6 +49,7 @@ ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS) | {
     "img",
     "main",
     "nav",
+    "p",
     "pre",
     "section",
     "summary",

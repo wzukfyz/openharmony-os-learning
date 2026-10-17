@@ -593,6 +593,63 @@ summary:focus-visible {
 }
 
 </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到正文</a>
+  <header class="site-header share-header">
+    <span class="brand">OpenHarmony 内核学习</span>
+    <span class="share-badge">独立分享版</span>
+    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深浅主题">
+      <span class="theme-icon" aria-hidden="true">◐</span>
+      <span class="theme-label">切换主题</span>
+    </button>
+  </header>
+  <main id="main-content" class="lesson-layout share-layout main-shell">
+  <details class="toc-panel" open>
+    <summary>本页目录</summary>
+    <nav aria-label="本页目录">
+      <ul class="toc-list"><li class="toc-level-2"><a href="#摘要">摘要</a></li><li class="toc-level-2"><a href="#正文">正文</a></li><li class="toc-level-3"><a href="#内核选择要先说清设备目标">内核选择要先说清设备目标</a></li><li class="toc-level-3"><a href="#实时性关注期限-而非平均速度">实时性关注期限，而非平均速度</a></li><li class="toc-level-3"><a href="#liteos-m-liteos-a-与-linux-的路线差异">LiteOS-M、LiteOS-A 与 Linux 的路线差异</a></li><li class="toc-level-3"><a href="#同一任务在不同设备上优先级不同">同一任务在不同设备上优先级不同</a></li><li class="toc-level-3"><a href="#为什么课程选择-linux">为什么课程选择 Linux</a></li></ul>
+    </nav>
+  </details>
+  <article class="lesson-article">
+    <header class="lesson-header">
+      <p class="eyebrow">Day003 · 独立分享版</p>
+      <h1>Day003：OpenHarmony 为什么有多种内核？</h1>
+    </header>
+
+    <div class="article-content">
+      <h2 id="摘要">摘要</h2>
+<p>本课解释 OpenHarmony 为什么支持多种内核路线，以及课程为什么聚焦 Linux。内核选择要同时考虑设备资源、任务响应时限、隔离需求、应用能力和维护成本，不能只看速度或功能多少。RTOS（实时操作系统）强调特定任务能否在期限内可预测地响应，不等于所有任务都更快；通用操作系统则需兼顾更广泛的应用、资源共享和生态能力。OpenHarmony 官方资料列出 LiteOS-M、LiteOS-A 与 Linux 等路线，各自面向的资源条件和软件需求不同。正文用传感器控制任务和本地文本应用对比约束，解释轻量内核、LiteOS-A 的丰富机制和 Linux 生态各自能解决什么问题，并强调内核名称不能代替具体产品的版本、配置和测试。课程以 Linux 为主线，是为了学习 OpenHarmony 标准系统相关的通用内核机制，不是对 LiteOS 路线作优劣排名。读者应能说明“所有 OpenHarmony 设备必须使用 Linux”以及“实时内核一定更快”为何都是过度推断。</p>
+<h2 id="正文">正文</h2>
+<h3 id="内核选择要先说清设备目标">内核选择要先说清设备目标</h3>
+<p>资源有限的传感器与运行图形界面、多应用的终端，面对不同约束。前者关注内存、功耗和固定任务；后者可能需要多进程、文件系统、驱动和应用框架。内核选择还要权衡隔离、安全更新、移植和维护成本。</p>
+<p>因此不存在脱离场景的“最好内核”。资源占用小不代表适合所有应用，功能多也不代表在每台设备上都值得付出额外成本。OpenHarmony 官方内核资料列出 LiteOS 与 Linux 等路线，说明项目不要求所有设备采用同一内核；但文档分类不是永久产品兼容表。具体设备用什么版本、启用了什么功能，仍要查目标产品资料和配置。</p>
+<h3 id="实时性关注期限-而非平均速度">实时性关注期限，而非平均速度</h3>
+<p>RTOS 是 Real-Time Operating System 的缩写，通常译为实时操作系统。比如控制任务每隔 5 毫秒读取传感器并更新执行机构，关键问题不只是平均运行多快，而是最坏情况下会不会超过期限。若延迟偶尔很长，即使平均速度很高，也可能错过关键时刻。</p>
+<p>**实时性强调可预测的响应和满足任务期限，不等于每项任务跑得更快。**若任务迟到会带来严重后果，就需分析中断、调度、驱动、硬件和负载下的最坏响应。实时能力也不是一个系统标签自动保证的：特定任务能否满足期限，需要结合实际配置与测量验证。</p>
+<p>通用操作系统则要支持多类任务、文件、网络、驱动和软件，综合考虑吞吐量、响应、资源共享与兼容性。平均吞吐高仍可能有个别任务等待较久；限制延迟也可能带来其他取舍。需求必须具体说明。</p>
+<p>工程讨论还会区分硬实时与软实时：硬实时任务错过期限可能意味着系统功能失败；软实时任务迟到通常表现为质量下降，但系统仍可继续工作。这个区别来自任务后果，不是仅凭内核名称判定。评估时须把中断处理、调度、驱动、处理器负载和测量方法都纳入，不能只看空载下的一次平均时间。</p>
+<p>例如 5 毫秒期限的传感器任务，应检查从中断到输出的端到端最坏延迟，而不只是任务代码本身的运行时间。</p>
+<h3 id="liteos-m-liteos-a-与-linux-的路线差异">LiteOS-M、LiteOS-A 与 Linux 的路线差异</h3>
+<p>OpenHarmony 的 LiteOS-M 官方说明将它定位于物联网轻量场景，强调小体积、低功耗、多架构适配和可选组件。轻量不表示没有调度或通信能力；功能取决于选用组件和产品配置。</p>
+<p>LiteOS-A 官方说明其基于 Huawei LiteOS 演进，增加进程、内存、文件系统和系统调用等机制，并提供 POSIX（可移植操作系统接口）接口与统一驱动框架。它与 LiteOS-M 是不同路线，不是同一内核按大小切分；产品应按资源、接口和维护需求选择。</p>
+<p>Linux 内核有长期发展的通用子系统和生态，公开项目始于 1991 年，逐步形成处理器支持、文件系统、网络、驱动和工具积累。生态可减少通用能力的开发成本，但驱动不一定适配每个产品。OpenHarmony 仍需选定上游基线、应用补丁和配置并完成适配；平台不因此等同 Linux。</p>
+<h3 id="同一任务在不同设备上优先级不同">同一任务在不同设备上优先级不同</h3>
+<p>看“读取并显示一段文字”：无屏传感器可能只保存配置并周期控制，减少常驻组件、满足期限更重要；带屏终端还可能需要多应用、文件、图形和网络，因此会重视隔离、驱动与软件生态。</p>
+<p>这不是互斥分类：大型终端也可能有期限严格的控制任务，小设备也可能需要复杂通信。是否满足要求取决于硬件、配置和负载；不能从“用了 Linux”推断实时保证，也不能从“用了 RTOS”推断整体更快。</p>
+<h3 id="为什么课程选择-linux">为什么课程选择 Linux</h3>
+<p>本课程目标是理解 Linux 通用内核机制，并阅读 OpenHarmony 标准系统 Linux 基线及集成。围绕进程、调度、内存、文件和同步建立知识后，再检查平台补丁与产品配置。**选择 Linux 是课程范围决定，不是内核排名。**若目标改为 LiteOS 开发，路线也应调整。</p>
+<p>遇到“Linux 和 LiteOS 哪个更好”，先问设备资源、关键任务期限及系统所需的文件、网络和应用能力，再比较具体版本、配置、测试与维护成本。官方资料说明路线定位，不等于某产品启用了所有功能或满足全部性能目标。</p>
+<p>本课承接 Day002 的系统分层，下一课会把路线选择落到一次文件读取请求。</p>
+<p>本课依据：<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/device-dev/kernel/Readme-CN.md">OpenHarmony 内核文档目录</a>、<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/readme/%E5%86%85%E6%A0%B8%E5%AD%90%E7%B3%BB%E7%BB%9F.md">内核子系统说明</a>、<a href="https://raw.githubusercontent.com/openharmony/kernel_liteos_m/master/README_zh.md">LiteOS-M README</a>、<a href="https://raw.githubusercontent.com/openharmony/kernel_liteos_a/master/README_zh.md">LiteOS-A README</a>和<a href="https://docs.kernel.org/admin-guide/README.html">Linux 官方 README</a>。资料会更新；具体产品适用情况见版本资料及官方资料索引。</p>
+
+    </div>
+  </article>
+</main>
+
+  <footer class="site-footer share-footer">
+    <p>独立 HTML 分享版。课程内容来源于 Markdown 自动生成。</p>
+  </footer>
   <script>
 (() => {
   const root = document.documentElement;
@@ -648,79 +705,5 @@ summary:focus-visible {
 })();
 
 </script>
-</head>
-<body>
-  <a class="skip-link" href="#main-content">跳到正文</a>
-  <header class="site-header share-header">
-    <span class="brand">OpenHarmony 内核学习</span>
-    <span class="share-badge">独立分享版</span>
-    <button class="theme-toggle" type="button" aria-pressed="false" aria-label="切换深浅主题">
-      <span class="theme-icon" aria-hidden="true">◐</span>
-      <span class="theme-label">切换主题</span>
-    </button>
-  </header>
-  <main id="main-content" class="lesson-layout share-layout main-shell">
-  <details class="toc-panel" open>
-    <summary>本页目录</summary>
-    <nav aria-label="本页目录">
-      <ul class="toc-list"><li class="toc-level-2"><a href="#摘要">摘要</a></li><li class="toc-level-2"><a href="#正文">正文</a></li><li class="toc-level-3"><a href="#内核选择要先说清设备目标">内核选择要先说清设备目标</a></li><li class="toc-level-3"><a href="#实时性关注期限-而非平均速度">实时性关注期限，而非平均速度</a></li><li class="toc-level-3"><a href="#liteos-m-liteos-a-与-linux-的路线差异">LiteOS-M、LiteOS-A 与 Linux 的路线差异</a></li><li class="toc-level-3"><a href="#同一任务在不同设备上优先级不同">同一任务在不同设备上优先级不同</a></li><li class="toc-level-3"><a href="#为什么课程选择-linux">为什么课程选择 Linux</a></li></ul>
-    </nav>
-  </details>
-  <article class="lesson-article">
-    <header class="lesson-header">
-      <p class="eyebrow">Day003 · 独立分享版</p>
-      <h1>Day003：OpenHarmony 为什么有多种内核？</h1>
-    </header>
-
-    <div class="article-content">
-      <h2 id="摘要">摘要</h2>
-
-本课解释 OpenHarmony 为什么支持多种内核路线，以及课程为什么聚焦 Linux。内核选择要同时考虑设备资源、任务响应时限、隔离需求、应用能力和维护成本，不能只看速度或功能多少。RTOS（实时操作系统）强调特定任务能否在期限内可预测地响应，不等于所有任务都更快；通用操作系统则需兼顾更广泛的应用、资源共享和生态能力。OpenHarmony 官方资料列出 LiteOS-M、LiteOS-A 与 Linux 等路线，各自面向的资源条件和软件需求不同。正文用传感器控制任务和本地文本应用对比约束，解释轻量内核、LiteOS-A 的丰富机制和 Linux 生态各自能解决什么问题，并强调内核名称不能代替具体产品的版本、配置和测试。课程以 Linux 为主线，是为了学习 OpenHarmony 标准系统相关的通用内核机制，不是对 LiteOS 路线作优劣排名。读者应能说明“所有 OpenHarmony 设备必须使用 Linux”以及“实时内核一定更快”为何都是过度推断。
-<h2 id="正文">正文</h2>
-<h3 id="内核选择要先说清设备目标">内核选择要先说清设备目标</h3>
-
-资源有限的传感器与运行图形界面、多应用的终端，面对不同约束。前者关注内存、功耗和固定任务；后者可能需要多进程、文件系统、驱动和应用框架。内核选择还要权衡隔离、安全更新、移植和维护成本。
-
-因此不存在脱离场景的“最好内核”。资源占用小不代表适合所有应用，功能多也不代表在每台设备上都值得付出额外成本。OpenHarmony 官方内核资料列出 LiteOS 与 Linux 等路线，说明项目不要求所有设备采用同一内核；但文档分类不是永久产品兼容表。具体设备用什么版本、启用了什么功能，仍要查目标产品资料和配置。
-<h3 id="实时性关注期限-而非平均速度">实时性关注期限，而非平均速度</h3>
-
-RTOS 是 Real-Time Operating System 的缩写，通常译为实时操作系统。比如控制任务每隔 5 毫秒读取传感器并更新执行机构，关键问题不只是平均运行多快，而是最坏情况下会不会超过期限。若延迟偶尔很长，即使平均速度很高，也可能错过关键时刻。
-
-**实时性强调可预测的响应和满足任务期限，不等于每项任务跑得更快。**若任务迟到会带来严重后果，就需分析中断、调度、驱动、硬件和负载下的最坏响应。实时能力也不是一个系统标签自动保证的：特定任务能否满足期限，需要结合实际配置与测量验证。
-
-通用操作系统则要支持多类任务、文件、网络、驱动和软件，综合考虑吞吐量、响应、资源共享与兼容性。平均吞吐高仍可能有个别任务等待较久；限制延迟也可能带来其他取舍。需求必须具体说明。
-
-工程讨论还会区分硬实时与软实时：硬实时任务错过期限可能意味着系统功能失败；软实时任务迟到通常表现为质量下降，但系统仍可继续工作。这个区别来自任务后果，不是仅凭内核名称判定。评估时须把中断处理、调度、驱动、处理器负载和测量方法都纳入，不能只看空载下的一次平均时间。
-
-例如 5 毫秒期限的传感器任务，应检查从中断到输出的端到端最坏延迟，而不只是任务代码本身的运行时间。
-<h3 id="liteos-m-liteos-a-与-linux-的路线差异">LiteOS-M、LiteOS-A 与 Linux 的路线差异</h3>
-
-OpenHarmony 的 LiteOS-M 官方说明将它定位于物联网轻量场景，强调小体积、低功耗、多架构适配和可选组件。轻量不表示没有调度或通信能力；功能取决于选用组件和产品配置。
-
-LiteOS-A 官方说明其基于 Huawei LiteOS 演进，增加进程、内存、文件系统和系统调用等机制，并提供 POSIX（可移植操作系统接口）接口与统一驱动框架。它与 LiteOS-M 是不同路线，不是同一内核按大小切分；产品应按资源、接口和维护需求选择。
-
-Linux 内核有长期发展的通用子系统和生态，公开项目始于 1991 年，逐步形成处理器支持、文件系统、网络、驱动和工具积累。生态可减少通用能力的开发成本，但驱动不一定适配每个产品。OpenHarmony 仍需选定上游基线、应用补丁和配置并完成适配；平台不因此等同 Linux。
-<h3 id="同一任务在不同设备上优先级不同">同一任务在不同设备上优先级不同</h3>
-
-看“读取并显示一段文字”：无屏传感器可能只保存配置并周期控制，减少常驻组件、满足期限更重要；带屏终端还可能需要多应用、文件、图形和网络，因此会重视隔离、驱动与软件生态。
-
-这不是互斥分类：大型终端也可能有期限严格的控制任务，小设备也可能需要复杂通信。是否满足要求取决于硬件、配置和负载；不能从“用了 Linux”推断实时保证，也不能从“用了 RTOS”推断整体更快。
-<h3 id="为什么课程选择-linux">为什么课程选择 Linux</h3>
-
-本课程目标是理解 Linux 通用内核机制，并阅读 OpenHarmony 标准系统 Linux 基线及集成。围绕进程、调度、内存、文件和同步建立知识后，再检查平台补丁与产品配置。**选择 Linux 是课程范围决定，不是内核排名。**若目标改为 LiteOS 开发，路线也应调整。
-
-遇到“Linux 和 LiteOS 哪个更好”，先问设备资源、关键任务期限及系统所需的文件、网络和应用能力，再比较具体版本、配置、测试与维护成本。官方资料说明路线定位，不等于某产品启用了所有功能或满足全部性能目标。
-
-本课承接 Day002 的系统分层，下一课会把路线选择落到一次文件读取请求。
-
-本课依据：<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/device-dev/kernel/Readme-CN.md">OpenHarmony 内核文档目录</a>、<a href="https://raw.githubusercontent.com/openharmony/docs/master/zh-cn/readme/%E5%86%85%E6%A0%B8%E5%AD%90%E7%B3%BB%E7%BB%9F.md">内核子系统说明</a>、<a href="https://raw.githubusercontent.com/openharmony/kernel_liteos_m/master/README_zh.md">LiteOS-M README</a>、<a href="https://raw.githubusercontent.com/openharmony/kernel_liteos_a/master/README_zh.md">LiteOS-A README</a>和<a href="https://docs.kernel.org/admin-guide/README.html">Linux 官方 README</a>。资料会更新；具体产品适用情况见版本资料及官方资料索引。
-
-    </div>
-  </article>
-</main>
-
-  <footer class="site-footer share-footer">
-    <p>独立 HTML 分享版。课程内容来源于 Markdown 自动生成。</p>
-  </footer>
 </body>
 </html>

@@ -68,7 +68,7 @@ class BuildReadingTest(unittest.TestCase):
                 '<u>下划线</u> '
                 '<span style="color: #b00020" onclick="alert(1)">标红</span> '
                 '<script>alert(2)</script> '
-                '[不安全链接](javascript:alert(3))\n',
+                '[不安全链接](javascript:alert(3))\n\n第二段。\n',
                 encoding="utf-8",
             )
             lesson = Lesson(source, 1, "Day001: Test", root / "_site" / "lessons" / "Day001.html")
@@ -84,6 +84,8 @@ class BuildReadingTest(unittest.TestCase):
             )
 
             self.assertIn("<u>下划线</u>", rendered)
+            self.assertIn("<p>摘要。</p>", rendered)
+            self.assertIn("<p>第二段。</p>", rendered)
             self.assertIn("style=\"color: #b00020;\"", rendered)
             self.assertIn('id="摘要"', rendered)
             self.assertNotIn("onclick", rendered)
